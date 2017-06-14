@@ -1,66 +1,80 @@
 package com.hatscripts.archergame.objects;
 
-import com.hatscripts.archergame.objects.list.Block;
-import com.hatscripts.archergame.objects.list.Player;
-import com.hatscripts.archergame.window.Game;
+import com.sun.istack.internal.NotNull;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.geometry.Bounds;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.canvas.GraphicsContext;
 
-import java.awt.*;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Objects {
+	private final LinkedList<GameObject> objectList = new LinkedList<>();
+	private final SimpleBooleanProperty debug;
 
-	public static final LinkedList<GameObject> OBJECTS = new LinkedList<>();
+	public Objects(SimpleBooleanProperty debug) {
+		this.debug = debug;
+	}
 
-	public void tick() {
-		for (GameObject object : OBJECTS) {
-			object.tick(OBJECTS);
+	private static Optional<GameObject> nearestTo(GameObject object, Stream<GameObject> stream) {
+		return stream.reduce(BinaryOperator.minBy((o1, o2) -> {
+			double d1 = object.distanceTo(o1);
+			double d2 = object.distanceTo(o2);
+			return Double.compare(d1, d2);
+		}));
+	}
+
+	public void tick(double elapsed) {
+		for (GameObject object : objectList) {
+			object.tick(elapsed);
 		}
 	}
 
-	public void render(Graphics g) {
-		for (GameObject object : OBJECTS) {
-			if (object.isOnScreen()) {
-				object.render(g);
+	public void render(GraphicsContext gc, Bounds gameBounds, double elapsed) {
+		for (GameObject object : objectList) {
+			if (object.isInBounds(gameBounds)) {
+				object.render(gc);
+				if (debug.get()) {
+					object.renderDebug(gc, elapsed);
+				}
 			}
 		}
 	}
 
 	public void add(GameObject object) {
-		OBJECTS.add(object);
+		object.setObjects(this);
+		objectList.add(object);
 	}
 
 	public void remove(GameObject object) {
-		OBJECTS.remove(object);
+		objectList.remove(object);
 	}
 
-	public void createLevel() {
-		int blockWidth = ObjectType.BLOCK.getWidth();
-		int blockHeight = ObjectType.BLOCK.getHeight();
-
-		// Top
-		for (int x = 0; x < Game.WIDTH; x += blockWidth) {
-			add(new Block(x, 0));
-		}
-		// Bottom
-		for (int x = 0; x < Game.WIDTH; x += blockWidth) {
-			add(new Block(x, Game.HEIGHT - blockHeight));
-		}
-		// Left
-		for (int y = blockHeight; y < Game.HEIGHT - blockHeight; y += blockHeight) {
-			add(new Block(0, y));
-		}
-		// Right
-		for (int y = blockHeight; y < Game.HEIGHT - blockHeight; y += blockHeight) {
-			add(new Block(Game.WIDTH - blockWidth, y));
-		}
+	public Optional<GameObject> nearestTo(GameObject object) {
+		return nearestTo(object, objectList.stream()
+				.filter(other -> other != object));
 	}
 
-	public Player getPlayer() {
-		for (GameObject object : OBJECTS) {
-			if (object.getType() == ObjectType.PLAYER) {
-				return (Player) object;
-			}
+	public Optional<GameObject> nearestTo(GameObject object, @NotNull ObjectType type) {
+		return nearestTo(object,
+				objectList.stream().filter(other -> other != object
+						&& type == other.getType()));
+	}
+
+	List<Rectangle2D> getCollisions(GameObject object) {
+		if (!object.isSolid()) {
+			throw new IllegalArgumentException("Object must be solid to perform a collision check");
 		}
-		return null;
+		return objectList.stream()
+				.filter(other -> other != object
+						&& other.isSolid()
+						&& object.getBounds().intersects(other.getBounds()))
+				.map(GameObject::getBounds)
+				.collect(Collectors.toList());
 	}
 }

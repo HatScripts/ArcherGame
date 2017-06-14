@@ -1,6 +1,6 @@
-package com.hatscripts.archergame.people;
+package com.hatscripts.archergame.tests.people;
 
-import com.hatscripts.archergame.utils.Random;
+import com.hatscripts.archergame.tests.Random;
 
 public enum Sexuality {
 	HETEROSEXUAL,
@@ -8,7 +8,7 @@ public enum Sexuality {
 	BISEXUAL;
 
 	public static Sexuality getRandom() {
-		int ran = Random.nextInt(0, 100);
+		int ran = Random.integer(0, 100);
 		if (ran > 3) {
 			return HETEROSEXUAL;
 		} else if (ran > 1) {

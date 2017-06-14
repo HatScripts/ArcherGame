@@ -1,6 +1,6 @@
-package com.hatscripts.archergame.people;
+package com.hatscripts.archergame.tests.people;
 
-import com.hatscripts.archergame.utils.Random;
+import com.hatscripts.archergame.tests.Random;
 
 public class Person {
 
@@ -30,7 +30,7 @@ public class Person {
 	public static Person generate() {
 		Gender gender = Gender.getRandom();
 		Name name = gender.getRandomName();
-		int age = Random.nextInt(18, 60);
+		int age = Random.integer(18, 60);
 		Sexuality sexuality = Sexuality.getRandom();
 
 		return new Person(name, age, gender, sexuality, Profession.UNEMPLOYED);

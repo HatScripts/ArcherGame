@@ -1,9 +1,9 @@
-package com.hatscripts.archergame.utils;
+package com.hatscripts.archergame.tests;
 
 public class Timer {
-	private long end;
 	private final long start;
 	private final long period;
+	private long end;
 
 	public Timer() {
 		this(0);

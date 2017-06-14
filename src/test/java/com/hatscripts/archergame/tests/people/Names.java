@@ -1,6 +1,6 @@
-package com.hatscripts.archergame.people;
+package com.hatscripts.archergame.tests.people;
 
-import com.hatscripts.archergame.utils.Random;
+import com.hatscripts.archergame.tests.Random;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -1648,7 +1648,7 @@ public final class Names {
 	}
 
 	public static String getRandomName(Map<String, Double> map) {
-		double ran = Random.nextDouble(0, 100);
+		double ran = Random.dbl(0, 100);
 		double cumulativeProbability = 0;
 		for (Map.Entry<String, Double> entry : map.entrySet()) {
 			cumulativeProbability += entry.getValue();

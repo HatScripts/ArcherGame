@@ -1,4 +1,4 @@
-package com.hatscripts.archergame.people;
+package com.hatscripts.archergame.tests.people;
 
 public enum Profession {
 	BUSINESSPERSON,

@@ -1,13 +1,13 @@
-package com.hatscripts.archergame.people;
+package com.hatscripts.archergame.tests.people;
 
-import com.hatscripts.archergame.utils.Random;
+import com.hatscripts.archergame.tests.Random;
 
 public enum Gender {
 	MALE,
 	FEMALE;
 
 	public static Gender getRandom() {
-		return Random.nextBoolean() ? Gender.MALE : Gender.FEMALE;
+		return Random.bool() ? Gender.MALE : Gender.FEMALE;
 	}
 
 	public Name getRandomName() {

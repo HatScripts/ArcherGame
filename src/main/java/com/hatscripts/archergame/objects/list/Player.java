@@ -2,179 +2,102 @@ package com.hatscripts.archergame.objects.list;
 
 import com.hatscripts.archergame.input.KeyInput;
 import com.hatscripts.archergame.input.MouseInput;
+import com.hatscripts.archergame.input.MovementKey;
 import com.hatscripts.archergame.objects.GameObject;
 import com.hatscripts.archergame.objects.ObjectType;
-
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.util.LinkedList;
-import java.util.Map;
+import com.sun.javafx.geom.Dimension2D;
+import javafx.geometry.Point2D;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
 public class Player extends GameObject {
-	private static final Color SKIN_COLOR = new Color(240, 194, 174);
-	private static final Color HAIR_COLOR = new Color(54, 45, 35);
-	private static final Color PUPIL_COLOR = new Color(74, 74, 74);
-	private static final Color TOP_COLOR = new Color(42, 42, 42);
-	private static final Dimension EYE = new Dimension(6, 4);
-	private static final Dimension PUPIL = new Dimension((int) (EYE.width / 1.5), EYE.height);
-	private static final Dimension MOUTH = new Dimension(5, 1);
+	// TODO: Give the player a bow so that the title "Archer Game" is accurate
+	private static final Color COLOR_SKIN = Color.color(0.94, 0.76, 0.68);
+	private static final Color COLOR_HAIR = Color.color(0.21, 0.18, 0.14);
+	private static final Color COLOR_PUPIL = Color.color(0.29, 0.29, 0.29);
+	private static final Color COLOR_SCLERA = Color.WHITE;
+	private static final Color COLOR_MOUTH = COLOR_SKIN.interpolate(Color.BLACK, 0.5);
+	private static final Color COLOR_TOP = Color.color(0.16, 0.16, 0.16);
+	private static final Dimension2D EYE = new Dimension2D(6, 4);
+	private static final Dimension2D PUPIL = new Dimension2D(EYE.width / 1.5f, EYE.height);
+	private static final Dimension2D MOUTH = new Dimension2D(5, 1);
+	private final KeyInput keyInput;
+	private final MouseInput mouseInput;
 
-	public Player(float x, float y) {
+	public Player(double x, double y, KeyInput keyInput, MouseInput mouseInput) {
 		super(ObjectType.PLAYER, x, y);
+		this.keyInput = keyInput;
+		this.mouseInput = mouseInput;
 	}
 
-	private enum Looking {
-		LEFT, CENTRE, RIGHT;
+	private static void drawEye(GraphicsContext g, double x, double y, MouseInput mouseInput) {
+		// TODO: Add eyelids; blinking, squinting, etc.
 
-		public static Looking fromEye(int x) {
-			x += (EYE.width / 2);
-			int mouseX = MouseInput.getMouseLocation().x;
+		/* Sclera */
+		g.setFill(COLOR_SCLERA);
+		g.fillRect(x, y, EYE.width, EYE.height);
 
-			if (x > mouseX + 5) {
-				return LEFT;
-			}
-			if (x < mouseX - 5) {
-				return RIGHT;
-			}
-			return CENTRE;
-		}
+		/* Pupil */
+		// TODO: Make pupil follow cursor vertically as well, not just horizontally.
+		g.setFill(COLOR_PUPIL);
+		double pupilX = mouseInput.mouseLocation().getX();
+		pupilX = Math.max(pupilX, x);
+		pupilX = Math.min(pupilX, x + EYE.width - PUPIL.width);
+		g.fillRect(pupilX, y, PUPIL.width, PUPIL.height);
+
+		/* Eyebrow */
+		g.setFill(COLOR_HAIR);
+		g.fillRect(x, y - 2, EYE.width, 2);
 	}
 
-	@Override
-	public void tick(LinkedList<GameObject> object) {
-		for (Map.Entry<Integer, Boolean> entry : KeyInput.KEYS_HELD.entrySet()) {
-			int key = entry.getKey();
-			boolean slow = !entry.getValue() || KeyInput.isKeyHeld(KeyInput.getOppositeKey(key));
-			float stepSize = slow ? 0.1f : 0.3f;
-			switch (key) {
-				case KeyEvent.VK_A: xSpeed = alterSpeed(xSpeed, -stepSize, slow); break;
-				case KeyEvent.VK_D: xSpeed = alterSpeed(xSpeed, +stepSize, slow); break;
-				case KeyEvent.VK_W: ySpeed = alterSpeed(ySpeed, -stepSize, slow); break;
-				case KeyEvent.VK_S: ySpeed = alterSpeed(ySpeed, +stepSize, slow); break;
-			}
-		}
-
-		x += xSpeed;
-		y += ySpeed;
-
-		collisionCheck();
-		capSpeed();
-		bringOntoScreen();
+	private static void drawMouth(GraphicsContext g, double x, double y) {
+		g.setFill(COLOR_MOUTH);
+		g.fillRect(x, y, MOUTH.width, MOUTH.height);
+		g.fillRect(x + 1, y, MOUTH.width - 2, MOUTH.height);
 	}
 
 	@Override
-	public void render(Graphics graphics) {
-		Graphics2D g = (Graphics2D) graphics;
-		int x = (int) this.x;
-		int y = (int) this.y;
-		/*g.setColor(Color.BLUE);
-		g.fillRect((int) x, (int) y, width, height);*/
+	public void tick(double elapsed) {
+		for (MovementKey key : MovementKey.values()) {
+			boolean slow = !keyInput.isKeyHeld(key) || keyInput.isKeyHeld(key.opposite());
+			double stepSize = slow ? maxSpeed / 50 : maxSpeed / 10;
+			xSpeed = alterSpeed(xSpeed, stepSize * key.getXAdjustment(), slow);
+			ySpeed = alterSpeed(ySpeed, stepSize * key.getYAdjustment(), slow);
+		}
+		super.tick(elapsed);
+	}
 
-		g.setColor(SKIN_COLOR);
-		//noinspection SuspiciousNameCombination
+	@Override
+	public void render(GraphicsContext g) {
+		g.setFill(COLOR_SKIN);
 		g.fillRect(x, y, width, width);
 
 		/* Eyes */
-		int leftEyeX = x + 6;
-		int rightEyeX = x + 20;
-		int eyeY = y + (width / 2);
-		drawEye(g, leftEyeX, eyeY, Looking.fromEye(leftEyeX));
-		drawEye(g, rightEyeX, eyeY, Looking.fromEye(rightEyeX));
+		double eyeY = y + (width / 2);
+		double leftEyeX = x + 6;
+		drawEye(g, leftEyeX, eyeY, mouseInput);
+		double rightEyeX = x + 20;
+		drawEye(g, rightEyeX, eyeY, mouseInput);
 
 		/* Mouth */
 		drawMouth(g, x + (width / 2) - (MOUTH.width / 2), y + (width / 4) * 3 + 1);
 
 		/* Hair */
-		int xPoly[] = {x, x, x + 24, x + width, x + width};
-		int yPoly[] = {y, y + 20, y + 10, y + 18, y};
-		Polygon hairPolygon = new Polygon(xPoly, yPoly, xPoly.length);
-
-		g.setColor(HAIR_COLOR);
-		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
-		g.fillPolygon(hairPolygon);
+		g.setFill(COLOR_HAIR);
+		double[] xPoints = {x, x, x + 24, x + width, x + width};
+		double[] yPoints = {y, y + 20, y + 10, y + 18, y};
+		g.fillPolygon(xPoints, yPoints, xPoints.length);
 
 		/* Top */
-		g.setColor(TOP_COLOR);
+		g.setFill(COLOR_TOP);
 		g.fillRect(x, y + width, width, 20);
-
-		/* Outline */
-		drawInnerShadow(g, x, y, width, width, 0.3f, 3);
-		drawInnerShadow(g, x, y + width, width, 20, 0.3f, 3);
-
-		/* Debug *
-		final Point p = getCenterPoint();
-		g.setColor(Color.RED);
-		g.drawRect(p.x - 2, p.y - 2, 4, 4);
-
-		final GameObject nearest = getNearest();
-		if (nearest != null) {
-			final Point p2 = nearest.getCenterPoint();
-			g.drawLine(p.x, p.y, p2.x, p2.y);
-		}
-
-		final Point mouse = MouseInput.getMouseLocation();
-		if (mouse != null) {
-			g.drawLine(p.x, p.y, mouse.x, mouse.y);
-		}
-
-		g.setColor(Color.WHITE);
-
-		for (final Bounds bounds : Bounds.values()) {
-			final Rectangle r = getBounds(bounds);
-			g.drawRect(r.x, r.y, r.width, r.height);
-		}
-
-		BetterGraphics.drawString(g, "xSpeed: " + xSpeed
-				+ "\nySpeed: " + ySpeed, (int) x, (int) y);
-		/* Debug */
 	}
 
-	private static void drawInnerShadow(Graphics2D g, int x, int y, int width, int height, float opacity, int size) {
-		g.setColor(Color.BLACK);
-
-		float stepSize = opacity / size;
-
-		for (int i = 0; i < size; i++) {
-			g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, (size - i) * stepSize));
-			g.drawRect(x + i, y + i, width - (i * 2 + 1), height - (i * 2 + 1));
-		}
-	}
-
-	private static void drawEye(Graphics2D g, int x, int y, Looking looking) {
-		/* Sclera */
-		g.setColor(Color.WHITE);
-		g.fillRect(x, y, EYE.width, EYE.height);
-
-		/* Pupil */
-		g.setColor(PUPIL_COLOR);
-		int pupilX = 0;
-		switch (looking) {
-			case LEFT:
-				pupilX = x;
-				break;
-			case CENTRE:
-				pupilX = x + (PUPIL.width / 4);
-				break;
-			case RIGHT:
-				pupilX = x + (PUPIL.width / 2);
-				break;
-		}
-		//final int pupilX = looking == Looking.LEFT ? x : x + (PUPIL.width / 2);
-		g.fillRect(pupilX, y, PUPIL.width, PUPIL.height);
-
-		/* Eyebrow */
-		g.setColor(HAIR_COLOR);
-		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f));
-		g.fillRect(x, y - 2, EYE.width, 2);
-
-		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
-	}
-
-	private static void drawMouth(Graphics2D g, int x, int y) {
-		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
-		/* Sclera */
-		g.setColor(Color.BLACK);
-		g.fillRect(x, y, MOUTH.width, MOUTH.height);
-		g.fillRect(x + 1, y, MOUTH.width - 2, MOUTH.height);
+	@Override
+	public void renderDebug(GraphicsContext g, double elapsed) {
+		super.renderDebug(g, elapsed);
+		Point2D center = getCenterPoint();
+		Point2D mouse = mouseInput.mouseLocation();
+		g.strokeLine(center.getX(), center.getY(), mouse.getX(), mouse.getY());
 	}
 }

@@ -1,22 +1,21 @@
 package com.hatscripts.archergame.objects;
 
-import java.awt.*;
+import javafx.geometry.Dimension2D;
 
 public enum ObjectType {
-	PLAYER("You", true, new Dimension(32, 52), 5),
-	BLOCK("Block", true, new Dimension(32, 32), 0);
-
+	PLAYER("You", true, new Dimension2D(32, 52), 200),
+	BLOCK("Block", true, new Dimension2D(32, 32), 0);
 	private final String name;
 	private final boolean solid;
-	private final int width;
-	private final int height;
-	private final float maxSpeed;
+	private final double width;
+	private final double height;
+	private final double maxSpeed;
 
-	ObjectType(String name, boolean solid, Dimension dimension, float maxSpeed) {
+	ObjectType(String name, boolean solid, Dimension2D dimension, double maxSpeed) {
 		this.name = name;
 		this.solid = solid;
-		this.width = (int) dimension.getWidth();
-		this.height = (int) dimension.getHeight();
+		this.width = dimension.getWidth();
+		this.height = dimension.getHeight();
 		this.maxSpeed = maxSpeed;
 	}
 
@@ -28,15 +27,15 @@ public enum ObjectType {
 		return solid;
 	}
 
-	public int getWidth() {
+	public double getWidth() {
 		return width;
 	}
 
-	public int getHeight() {
+	public double getHeight() {
 		return height;
 	}
 
-	public float getMaxSpeed() {
+	public double getMaxSpeed() {
 		return maxSpeed;
 	}
 }

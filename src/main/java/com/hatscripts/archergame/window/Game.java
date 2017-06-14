@@ -1,100 +1,89 @@
 package com.hatscripts.archergame.window;
 
+import com.hatscripts.archergame.input.KeyInput;
+import com.hatscripts.archergame.input.MouseInput;
+import com.hatscripts.archergame.objects.ObjectType;
 import com.hatscripts.archergame.objects.Objects;
+import com.hatscripts.archergame.objects.list.Block;
 import com.hatscripts.archergame.objects.list.Player;
-import com.hatscripts.archergame.utils.BetterGraphics;
-import com.hatscripts.archergame.utils.Time;
+import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleLongProperty;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
-import java.awt.*;
-import java.awt.image.BufferStrategy;
+class Game extends Canvas {
+	private final GraphicsContext gc;
+	private final Objects objects;
+	private final AnimationTimer timer;
+	private final SimpleDoubleProperty fps = new SimpleDoubleProperty(0, "FPS");
+	private final SimpleLongProperty runtime = new SimpleLongProperty(0, "Runtime");
 
-public class Game extends Canvas implements Runnable {
-	private static final String TITLE = "Archer Game";
-	public static final int WIDTH = 640;
-	public static final int HEIGHT = 352;
-	private static final int FPS = 60;
-	public static final Rectangle BOUNDS = new Rectangle(0, 0, WIDTH, HEIGHT);
-	private boolean running = false;
-	private final Objects objects = new Objects();
-	private long runtime;
-	private int ingameFps;
+	Game(double width, double height,
+		 KeyInput keyInput, MouseInput mouseInput) {
+		super(width, height);
+		SimpleBooleanProperty debug = new SimpleBooleanProperty(false, "Debug");
+		debug.bind(keyInput.debugProperty());
+		objects = new Objects(debug);
+		objects.add(new Player(getWidth() / 2, getHeight() / 2, keyInput, mouseInput));
 
-	Game() {
-		objects.add(new Player(WIDTH / 2, HEIGHT / 2));
+		double blockWidth = ObjectType.BLOCK.getWidth();
+		double blockHeight = ObjectType.BLOCK.getHeight();
 
-		//objects.createLevel();
-	}
-
-	public static void main(String[] args) {
-		new Window(TITLE, WIDTH, HEIGHT);
-	}
-
-	synchronized void start() {
-		if (running) {
-			return;
+		for (double x = 0; x < width; x += blockWidth) {
+			objects.add(new Block(x, 0));
+			objects.add(new Block(x, height - blockHeight));
 		}
-		running = true;
-		Thread thread = new Thread(this);
-		thread.start();
-	}
+		for (double y = blockHeight; y < height - blockHeight; y += blockHeight) {
+			objects.add(new Block(0, y));
+			objects.add(new Block(width - blockWidth, y));
+		}
 
-	@Override
-	public void run() {
-		long startTime = System.nanoTime();
-		long lastTime = startTime;
-		int ticks = 0;
-		double nsPerTick = 1000000000.0 / FPS;
+		this.gc = this.getGraphicsContext2D();
+		Game game = this;
 
-		while (running) {
-			long currentTime = System.nanoTime();
-			long diff = currentTime - lastTime;
-			if (diff >= nsPerTick) {
-				tick();
-				render();
-				ticks++;
-				if (ticks % FPS == 0) {
-					runtime = (long) ((currentTime - startTime) / 1000000000.0);
-					ingameFps = Math.round(ticks / runtime);
-				}
-				lastTime = currentTime;
+		timer = new AnimationTimer() {
+			private final long startTime = System.nanoTime();
+			private final SimpleLongProperty lastNanoTime = new SimpleLongProperty(startTime);
+
+			@Override
+			public void handle(long now) {
+				runtime.set((long) ((now - startTime) / 1E6));
+				double elapsed = (now - lastNanoTime.get()) / 1E9;
+				fps.set(1 / elapsed);
+				game.tick(elapsed);
+				lastNanoTime.set(now);
 			}
-		}
+		};
+		timer.start();
 	}
 
-	private void tick() {
-		objects.tick();
+	private void tick(double elapsed) {
+		objects.tick(elapsed);
+		paint(elapsed);
 	}
 
-	private void render() {
-		BufferStrategy bs = getBufferStrategy();
-		if (bs == null) {
-			createBufferStrategy(3);
-			return;
-		}
-		Graphics2D g = (Graphics2D) bs.getDrawGraphics();
+	private void paint(double elapsed) {
+		Platform.runLater(() -> {
+			gc.setFill(Color.DARKGRAY);
+			gc.fillRect(0, 0, getWidth(), getHeight());
 
-		g.setRenderingHint(
-				RenderingHints.KEY_ANTIALIASING,
-				RenderingHints.VALUE_ANTIALIAS_ON);
-		g.setRenderingHint(
-				RenderingHints.KEY_TEXT_ANTIALIASING,
-				RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			objects.render(gc, getBoundsInLocal(), elapsed);
 
-		g.setColor(Color.DARK_GRAY);
-		g.fillRect(0, 0, WIDTH, HEIGHT);
+			/* Debug */
+			gc.setFill(Color.WHITE);
+			gc.fillText(String.format("%s: %s\n%s: %.0f",
+					// TODO: Fix runtime showing as 10:MM:SS instead of HH:MM:SS
+					runtime.getName(), String.format("%1$tH:%1$tM:%1$tS", runtime.get()),
+					// TODO: Make FPS display smoother
+					fps.getName(), fps.get()), 10, 12);
+		});
+	}
 
-		objects.render(g);
-
-		/* Debug */
-		g.setColor(Color.WHITE);
-
-		g.drawRect(32, 32, WIDTH - 64, HEIGHT - 64);
-
-		BetterGraphics.drawString(g, "Runtime: " + Time.format(runtime)
-				+ "\nFPS: " + ingameFps, 10, 12);
-		/* Debug */
-
-		g.dispose();
-		bs.show();
+	void stopAnimationTimer() {
+		timer.stop();
 	}
 }

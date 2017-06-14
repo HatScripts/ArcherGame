@@ -1,20 +1,26 @@
 package com.hatscripts.archergame.objects;
 
-import com.hatscripts.archergame.window.Game;
+import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
-import java.awt.*;
-import java.util.LinkedList;
+import java.util.Arrays;
+import java.util.Optional;
 
 public abstract class GameObject {
-
-	protected final int width, height;
-	protected final float maxSpeed;
-	protected final boolean solid;
+	protected final double width;
+	protected final double height;
+	protected final double maxSpeed;
+	private final boolean solid;
 	private final ObjectType type;
-	protected float x, y;
-	protected float xSpeed, ySpeed;
+	protected double x;
+	protected double y;
+	protected double xSpeed;
+	protected double ySpeed;
+	private Objects objects;
 
-	public GameObject(ObjectType type, float x, float y) {
+	protected GameObject(ObjectType type, double x, double y) {
 		this.type = type;
 		this.x = x;
 		this.y = y;
@@ -24,47 +30,116 @@ public abstract class GameObject {
 		this.maxSpeed = type.getMaxSpeed();
 	}
 
-	protected enum Bounds {
-		TOP, BOTTOM, LEFT, RIGHT
+	protected enum CollisionChecker {
+		TOP {
+			@Override
+			public Rectangle2D rect(double x, double y, double w, double h, double xs, double ys) {
+				return new Rectangle2D(x + HALF_WIDTH + xs, y - ys,
+						w - WIDTH - xs * 2, ys + HALF_WIDTH);
+			}
+		}, BOTTOM {
+			@Override
+			public Rectangle2D rect(double x, double y, double w, double h, double xs, double ys) {
+				return new Rectangle2D(x + HALF_WIDTH + xs, y + h - HALF_WIDTH,
+						w - WIDTH - xs * 2, ys + HALF_WIDTH);
+			}
+		}, LEFT {
+			@Override
+			public Rectangle2D rect(double x, double y, double w, double h, double xs, double ys) {
+				return new Rectangle2D(x - xs, y + HALF_WIDTH + ys,
+						xs + HALF_WIDTH, h - WIDTH - ys * 2);
+			}
+		}, RIGHT {
+			@Override
+			public Rectangle2D rect(double x, double y, double w, double h, double xs, double ys) {
+				return new Rectangle2D(x + w - HALF_WIDTH, y + HALF_WIDTH + ys,
+						xs + HALF_WIDTH, h - WIDTH - ys * 2);
+			}
+		};
+		private static final int WIDTH = 10;
+		private static final int HALF_WIDTH = WIDTH / 2;
+
+		public abstract Rectangle2D rect(double x, double y, double w, double h, double xs, double ys);
 	}
 
-	public abstract void tick(LinkedList<GameObject> object);
+	protected static double alterSpeed(double current, double amount, boolean toStop) {
+		if (toStop) {
+			amount = Math.abs(amount);
+			if (current > 0) {
+				return current <= amount ? 0 : current - amount;
+			} else {
+				return current >= -amount ? 0 : current + amount;
+			}
+		} else {
+			return current + amount;
+		}
+	}
 
-	public abstract void render(Graphics g);
+	public void tick(double elapsed) {
+		x += xSpeed * elapsed;
+		y += ySpeed * elapsed;
+
+		collisionCheck(elapsed);
+		capSpeed();
+	}
+
+	public abstract void render(GraphicsContext g);
+
+	public void renderDebug(GraphicsContext g, double elapsed) {
+		Point2D center = getCenterPoint();
+		g.setStroke(Color.RED);
+		g.strokeRect(center.getX() - 2, center.getY() - 2, 4, 4);
+
+		Optional<GameObject> optionalNearest = objects.nearestTo(this);
+		optionalNearest.ifPresent(nearest -> {
+			Point2D p2 = nearest.getCenterPoint();
+			g.strokeLine(center.getX(), center.getY(), p2.getX(), p2.getY());
+		});
+
+		if (maxSpeed > 0) {
+			g.setStroke(Color.WHITE);
+			for (CollisionChecker collisionChecker : CollisionChecker.values()) {
+				Rectangle2D r = getBounds(collisionChecker, elapsed);
+				g.strokeRect(r.getMinX(), r.getMinY(), r.getWidth(), r.getHeight());
+			}
+
+			g.fillText("xSpeed: " + xSpeed + "\nySpeed: " + ySpeed, x, y);
+		}
+	}
 
 	public ObjectType getType() {
 		return type;
 	}
 
-	public float getX() {
+	public double getX() {
 		return x;
 	}
 
-	public void setX(float x) {
+	public void setX(double x) {
 		this.x = x;
 	}
 
-	public float getY() {
+	public double getY() {
 		return y;
 	}
 
-	public void setY(float y) {
+	public void setY(double y) {
 		this.y = y;
 	}
 
-	public float getXSpeed() {
+	public double getXSpeed() {
 		return xSpeed;
 	}
 
-	public void setXSpeed(float xSpeed) {
+	public void setXSpeed(double xSpeed) {
 		this.xSpeed = xSpeed;
 	}
 
-	public float getYSpeed() {
+	public double getYSpeed() {
 		return ySpeed;
 	}
 
-	public void setYSpeed(float ySpeed) {
+	public void setYSpeed(double ySpeed) {
 		this.ySpeed = ySpeed;
 	}
 
@@ -72,175 +147,82 @@ public abstract class GameObject {
 		return solid;
 	}
 
-	public Rectangle getBounds() {
-		return new Rectangle((int) x, (int) y, width, height);
+	public Rectangle2D getBounds() {
+		return new Rectangle2D(x, y, width, height);
 	}
 
-	public Rectangle getBounds(Bounds bounds) {
-		int xs = (int) Math.abs(xSpeed);
-		int ys = (int) Math.abs(ySpeed);
-		switch (bounds) {
-			case TOP:
-				return new Rectangle((int) x + 5 + xs, (int) y - ys, width - 10 - xs * 2, ys + 5);
-			case BOTTOM:
-				return new Rectangle((int) x + 5 + xs, (int) y + height - 5, width - 10 - xs * 2, ys + 5);
-			case LEFT:
-				return new Rectangle((int) x - xs, (int) y + 5 + ys, xs + 5, height - 10 - ys * 2);
-			case RIGHT:
-				return new Rectangle((int) x + width - 5, (int) y + 5 + ys, xs + 5, height - 10 - ys * 2);
-			default:
-				throw new IllegalArgumentException();
-		}
+	private Rectangle2D getBounds(CollisionChecker collisionChecker, double elapsed) {
+		return collisionChecker.rect(x, y, width, height, Math.abs(xSpeed) * elapsed, Math.abs(ySpeed) * elapsed);
 	}
 
-	public boolean contains(Point point) {
+	public boolean contains(Point2D point) {
 		return getBounds().contains(point);
 	}
 
-	public boolean isOnScreen() {
-		return Game.BOUNDS.intersects(getBounds());
+	public boolean isInBounds(javafx.geometry.Bounds bounds) {
+		return bounds.intersects(bounds);
 	}
 
-	public Point getCenterPoint() {
-		return new Point((int) x + (width / 2), (int) y + (height / 2));
+	protected Point2D getCenterPoint() {
+		return new Point2D(x + (width / 2), y + (height / 2));
 	}
 
 	public double distanceTo(GameObject object) {
 		return distanceTo(object.getCenterPoint());
 	}
 
-	public double distanceTo(Point point) {
-		Point thisPoint = getCenterPoint();
-
-		double dx = thisPoint.x - point.x;
-		double dy = thisPoint.y - point.y;
-		return Math.sqrt((dx * dx) + (dy * dy));
+	private double distanceTo(Point2D point) {
+		return getCenterPoint().distance(point);
 	}
 
-	public GameObject getNearest() {
-		return getNearest(null);
-	}
-
-	public GameObject getNearest(ObjectType type) {
-		if (Objects.OBJECTS.size() <= 1) {
-			return null;
+	public double angleTo(Point2D point) {
+		double angle = Math.toDegrees(Math.atan2(point.getY() - y, point.getX() - x));
+		if (angle < 0) {
+			angle += 360;
 		}
-		GameObject nearest = null;
-		double distanceToNearest = Double.MAX_VALUE;
-		for (GameObject object : Objects.OBJECTS) {
-			if ((type == null || type == object.getType())
-					&& object != this) {
-				double distance = distanceTo(object);
-				if (distance < distanceToNearest) {
-					nearest = object;
-					distanceToNearest = distance;
+		return angle;
+	}
+
+	private void collisionCheck(double elapsed) {
+		// TODO: Improve this method. The CollisionChecker enum is probably unnecessary.
+		for (Rectangle2D collision : objects.getCollisions(this)) {
+			getCollisionLocation(collision, elapsed).ifPresent(collisionLoc -> {
+				switch (collisionLoc) {
+					case TOP:
+						ySpeed = 0;
+						y = collision.getMaxY();
+						break;
+					case BOTTOM:
+						ySpeed = 0;
+						y = collision.getMinY() - height;
+						break;
+					case LEFT:
+						xSpeed = 0;
+						x = collision.getMaxX();
+						break;
+					case RIGHT:
+						xSpeed = 0;
+						x = collision.getMinX() - width;
+						break;
 				}
-			}
-		}
-		return nearest;
-	}
-
-	protected boolean collisionCheck() {
-		if (!solid) {
-			throw new IllegalArgumentException("Object must be solid to perform a collision check");
-		}
-		for (GameObject object : Objects.OBJECTS) {
-			if (object != this && object.isSolid()) {
-				Rectangle objectBounds = object.getBounds();
-				Bounds collisionLoc = getCollisionLocation(objectBounds);
-				if (collisionLoc != null) {
-					System.out.println(collisionLoc.toString());
-					switch (collisionLoc) {
-						case TOP:
-							ySpeed = 0;
-							y = objectBounds.y + objectBounds.height;
-							break;
-						case BOTTOM:
-							ySpeed = 0;
-							y = objectBounds.y - height;
-							break;
-						case LEFT:
-							xSpeed = 0;
-							x = objectBounds.x + objectBounds.width;
-							break;
-						case RIGHT:
-							xSpeed = 0;
-							x = objectBounds.x - width;
-							break;
-					}
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	protected void bringOntoScreen() {
-		if (x < 32) {
-			x = 32;
-			xSpeed = 0;
-		} else if (x + width > Game.WIDTH - 32) {
-			x = Game.WIDTH - 32 - width;
-			xSpeed = 0;
-		}
-		if (y < 32) {
-			y = 32;
-			ySpeed = 0;
-		} else if (y + height > Game.HEIGHT - 32) {
-			y = Game.HEIGHT - 32 - height;
-			ySpeed = 0;
+			});
 		}
 	}
 
-	/*protected void bringOntoScreen() {
-		if (x < 0) {
-			x = 0;
-			xSpeed = 0;
-		} else if (x + width > Game.WIDTH) {
-			x = Game.WIDTH - width;
-			xSpeed = 0;
-		}
-		if (y < 0) {
-			y = 0;
-			ySpeed = 0;
-		} else if (y + height > Game.HEIGHT) {
-			y = Game.HEIGHT - height;
-			ySpeed = 0;
-		}
-	}*/
-
-	protected void capSpeed() {
-		if (xSpeed > maxSpeed) {
-			xSpeed = maxSpeed;
-		} else if (xSpeed < -maxSpeed) {
-			xSpeed = -maxSpeed;
-		}
-		if (ySpeed > maxSpeed) {
-			ySpeed = maxSpeed;
-		} else if (ySpeed < -maxSpeed) {
-			ySpeed = -maxSpeed;
-		}
+	private Optional<CollisionChecker> getCollisionLocation(Rectangle2D otherBounds, double elapsed) {
+		return Arrays.stream(CollisionChecker.values())
+				.filter(checker -> getBounds(checker, elapsed).intersects(otherBounds))
+				.findAny();
 	}
 
-	protected float alterSpeed(float current, float amount, boolean toStop) {
-		if (toStop) {
-			amount = Math.abs(amount);
-			if (current > 0) {
-				return current > amount ? current - amount : 0;
-			} else {
-				return current < -amount ? current + amount : 0;
-			}
-		} else {
-			return current + amount;
-		}
+	private void capSpeed() {
+		xSpeed = Math.min(xSpeed, maxSpeed);
+		xSpeed = Math.max(xSpeed, -maxSpeed);
+		ySpeed = Math.min(ySpeed, maxSpeed);
+		ySpeed = Math.max(ySpeed, -maxSpeed);
 	}
 
-	private Bounds getCollisionLocation(Rectangle otherBounds) {
-		for (Bounds bounds : Bounds.values()) {
-			if (getBounds(bounds).intersects(otherBounds)) {
-				return bounds;
-			}
-		}
-		return null;
+	void setObjects(Objects objects) {
+		this.objects = objects;
 	}
 }

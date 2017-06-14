@@ -1,8 +1,18 @@
-package com.hatscripts.archergame.utils;
+package com.hatscripts.archergame.tests;
 
 import java.util.concurrent.TimeUnit;
 
 public final class Time {
+	public static void main(String[] args) {
+		System.out.println("formatSimple(0): " + formatSimple(0));
+		System.out.println("formatSimple(1000): " + formatSimple(1000));
+		System.out.println("formatSimple(10_000): " + formatSimple(10_000));
+	}
+
+	public static String formatSimple(long millis) {
+		return String.format("%1$tH:%1$tM:%1$tS", millis);
+	}
+
 	/**
 	 * Converts seconds to a {@code String} in the format of HH:MM:SS.
 	 *

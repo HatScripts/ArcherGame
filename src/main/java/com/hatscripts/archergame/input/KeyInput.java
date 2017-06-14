@@ -1,55 +1,54 @@
 package com.hatscripts.archergame.input;
 
-import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public class KeyInput extends AbstractAction {
-
-	public static final int[] MOVEMENT_KEYS = {KeyEvent.VK_A, KeyEvent.VK_D, KeyEvent.VK_W, KeyEvent.VK_S};
-	public static final Map<Integer, Boolean> KEYS_HELD;
+public class KeyInput implements EventHandler<KeyEvent> {
+	private static final Map<MovementKey, Boolean> KEYS_HELD;
+	private final SimpleBooleanProperty debug = new SimpleBooleanProperty(false, "Debug");
 
 	static {
-		Map<Integer, Boolean> map = new HashMap<>(MOVEMENT_KEYS.length);
-		for (int key : MOVEMENT_KEYS) {
+		MovementKey[] values = MovementKey.values();
+		Map<MovementKey, Boolean> map = new HashMap<>(values.length);
+		for (MovementKey key : values) {
 			map.put(key, false);
 		}
 		KEYS_HELD = map;
 	}
 
-	private final String command;
-
-	public KeyInput(String command) {
-		this.command = command;
-	}
-
+	/**
+	 * Invoked when a specific event of the type for which this handler is
+	 * registered happens.
+	 *
+	 * @param e the event which occurred
+	 */
 	@Override
-	public void actionPerformed(ActionEvent e) {
-		if (command.equals("Escape")) {
+	public void handle(KeyEvent e) {
+		KeyCode code = e.getCode();
+		if (code == KeyCode.ESCAPE) {
 			System.exit(0);
 			return;
 		}
-		int key = (int) command.charAt(0);
-		if (KEYS_HELD.containsKey(key)) {
-			boolean released = command.endsWith("Released");
-			KEYS_HELD.put(key, !released);
+		EventType<KeyEvent> eventType = e.getEventType();
+		if (eventType.equals(KeyEvent.KEY_RELEASED)
+				&& code == KeyCode.D && e.isControlDown()) {
+			debug.set(!debug.get());
 		}
+		MovementKey.fromKeyCode(code).ifPresent(key ->
+				KEYS_HELD.put(key, !eventType.equals(KeyEvent.KEY_RELEASED)));
 	}
 
-	public static boolean isKeyHeld(int key) {
-		return KeyInput.KEYS_HELD.get(key);
+	public boolean isKeyHeld(MovementKey key) {
+		return KEYS_HELD.get(key);
 	}
 
-	public static int getOppositeKey(int key) {
-		switch (key) {
-			case KeyEvent.VK_A: return KeyEvent.VK_D;
-			case KeyEvent.VK_D: return KeyEvent.VK_A;
-			case KeyEvent.VK_W: return KeyEvent.VK_S;
-			case KeyEvent.VK_S: return KeyEvent.VK_W;
-			default:
-				throw new IllegalArgumentException("Key is not a valid movement key: " + key);
-		}
+	public SimpleBooleanProperty debugProperty() {
+		return debug;
 	}
 }

@@ -1,56 +1,79 @@
 package com.hatscripts.archergame.input;
 
-import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import javafx.event.EventHandler;
+import javafx.geometry.Point2D;
+import javafx.scene.input.MouseEvent;
 
-public class MouseInput implements MouseListener, MouseMotionListener {
+public class MouseInput implements EventHandler<MouseEvent> {
+	private Point2D mouseLocation = Point2D.ZERO;
+	private boolean mouseOutsideWindow;
 
-	private static Point mouseLocation;
-	private static boolean mouseOutsideWindow = true;
-
+	/**
+	 * Invoked when a specific event of the type for which this handler is
+	 * registered happens.
+	 *
+	 * @param e the event which occurred
+	 */
 	@Override
-	public void mouseClicked(MouseEvent e) {
+	public void handle(MouseEvent e) {
+		switch (e.getEventType().getName()) {
+			case "MOUSE_CLICKED":
+				mouseClicked(e);
+				break;
+			case "MOUSE_PRESSED":
+				mousePressed(e);
+				break;
+			case "MOUSE_RELEASED":
+				mouseReleased(e);
+				break;
+			case "MOUSE_MOVED":
+				mouseMoved(e);
+				break;
+			case "MOUSE_DRAGGED":
+				mouseDragged(e);
+				break;
+			case "MOUSE_ENTERED":
+				mouseEntered(e);
+				break;
+			case "MOUSE_EXITED":
+				mouseExited(e);
+				break;
+		}
+		mouseLocation = new Point2D(e.getX(), e.getY());
+	}
+
+	private void mouseClicked(MouseEvent e) {
 
 	}
 
-	@Override
-	public void mousePressed(MouseEvent e) {
-		System.out.println("Mouse pressed at: " + e.getPoint());
+	private void mousePressed(MouseEvent e) {
+		System.out.println("Mouse pressed at: " + e.getX() + "," + e.getY());
 	}
 
-	@Override
-	public void mouseReleased(MouseEvent e) {
-		System.out.println("Mouse released at: " + e.getPoint());
+	private void mouseReleased(MouseEvent e) {
+		System.out.println("Mouse released at: " + e.getX() + "," + e.getY());
 	}
 
-	@Override
-	public void mouseEntered(MouseEvent e) {
-	}
-
-	@Override
-	public void mouseExited(MouseEvent e) {
-		mouseOutsideWindow = true;
-	}
-
-	@Override
-	public void mouseDragged(MouseEvent e) {
-		mouseLocation = e.getPoint();
-	}
-
-	@Override
-	public void mouseMoved(MouseEvent e) {
-		mouseLocation = e.getPoint();
+	private void mouseEntered(MouseEvent e) {
 		mouseOutsideWindow = false;
 	}
 
-	public static Point getMouseLocation() {
-		if (mouseOutsideWindow) {
-			Point mouse = MouseInfo.getPointerInfo().getLocation();
-			Point window = com.hatscripts.archergame.window.Window.getLocation();
-			mouseLocation = new Point(mouse.x - window.x, mouse.y - window.y);
-		}
+	private void mouseExited(MouseEvent e) {
+		mouseOutsideWindow = true;
+	}
+
+	private void mouseDragged(MouseEvent e) {
+	}
+
+	private void mouseMoved(MouseEvent e) {
+	}
+
+	public Point2D mouseLocation() {
+		// TODO: Allow mouse location detection when outside window bounds
 		return mouseLocation;
+	}
+
+	public boolean isMouseOutsideWindow() {
+		return mouseOutsideWindow;
 	}
 }
