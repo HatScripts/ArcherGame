@@ -11,7 +11,11 @@ import java.util.Map;
 
 public class KeyInput implements EventHandler<KeyEvent> {
 	private static final Map<MovementKey, Boolean> KEYS_HELD;
-	private final SimpleBooleanProperty debug = new SimpleBooleanProperty(false, "Debug");
+	private final SimpleBooleanProperty debug;
+
+	public KeyInput(SimpleBooleanProperty debug) {
+		this.debug = debug;
+	}
 
 	static {
 		MovementKey[] values = MovementKey.values();
@@ -22,12 +26,6 @@ public class KeyInput implements EventHandler<KeyEvent> {
 		KEYS_HELD = map;
 	}
 
-	/**
-	 * Invoked when a specific event of the type for which this handler is
-	 * registered happens.
-	 *
-	 * @param e the event which occurred
-	 */
 	@Override
 	public void handle(KeyEvent e) {
 		KeyCode code = e.getCode();
@@ -36,19 +34,16 @@ public class KeyInput implements EventHandler<KeyEvent> {
 			return;
 		}
 		EventType<KeyEvent> eventType = e.getEventType();
-		if (eventType.equals(KeyEvent.KEY_RELEASED)
+		if (eventType.equals(KeyEvent.KEY_PRESSED)
 				&& code == KeyCode.D && e.isControlDown()) {
 			debug.set(!debug.get());
+		} else {
+			MovementKey.fromKeyCode(code).ifPresent(key ->
+					KEYS_HELD.put(key, !eventType.equals(KeyEvent.KEY_RELEASED)));
 		}
-		MovementKey.fromKeyCode(code).ifPresent(key ->
-				KEYS_HELD.put(key, !eventType.equals(KeyEvent.KEY_RELEASED)));
 	}
 
 	public boolean isKeyHeld(MovementKey key) {
 		return KEYS_HELD.get(key);
-	}
-
-	public SimpleBooleanProperty debugProperty() {
-		return debug;
 	}
 }
