@@ -1,79 +1,79 @@
 package com.hatscripts.archergame.input;
 
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.geometry.Point2D;
 import javafx.scene.input.MouseEvent;
 
-public class MouseInput implements EventHandler<MouseEvent> {
-	private Point2D mouseLocation = Point2D.ZERO;
-	private boolean mouseOutsideWindow;
+import java.awt.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
 
-	/**
-	 * Invoked when a specific event of the type for which this handler is
-	 * registered happens.
-	 *
-	 * @param e the event which occurred
-	 */
+public class MouseInput implements EventHandler<MouseEvent> {
+	private Point2D mouseLocation = null;
+	private boolean mouseOutsideWindow = true;
+	private final Map<EventType<? extends MouseEvent>, Consumer<MouseEvent>> MOUSE_EVENT_METHODS;
+	private final SimpleDoubleProperty stageX = new SimpleDoubleProperty();
+	private final SimpleDoubleProperty stageY = new SimpleDoubleProperty();
+
+	public MouseInput(ReadOnlyDoubleProperty stageX, ReadOnlyDoubleProperty stageY) {
+		this.stageX.bind(stageX);
+		this.stageY.bind(stageY);
+
+		Map<EventType<? extends MouseEvent>, Consumer<MouseEvent>> map = new HashMap<>();
+		map.put(MouseEvent.MOUSE_PRESSED, this::pressed);
+		map.put(MouseEvent.MOUSE_RELEASED, this::released);
+		map.put(MouseEvent.MOUSE_CLICKED, this::clicked);
+		map.put(MouseEvent.MOUSE_ENTERED, this::entered);
+		map.put(MouseEvent.MOUSE_EXITED, this::exited);
+		map.put(MouseEvent.MOUSE_MOVED, this::moved);
+		map.put(MouseEvent.MOUSE_DRAGGED, this::dragged);
+		MOUSE_EVENT_METHODS = Collections.unmodifiableMap(map);
+	}
+
 	@Override
 	public void handle(MouseEvent e) {
-		switch (e.getEventType().getName()) {
-			case "MOUSE_CLICKED":
-				mouseClicked(e);
-				break;
-			case "MOUSE_PRESSED":
-				mousePressed(e);
-				break;
-			case "MOUSE_RELEASED":
-				mouseReleased(e);
-				break;
-			case "MOUSE_MOVED":
-				mouseMoved(e);
-				break;
-			case "MOUSE_DRAGGED":
-				mouseDragged(e);
-				break;
-			case "MOUSE_ENTERED":
-				mouseEntered(e);
-				break;
-			case "MOUSE_EXITED":
-				mouseExited(e);
-				break;
-		}
+		Optional.ofNullable(MOUSE_EVENT_METHODS.get(e.getEventType()))
+				.ifPresent(consumer -> consumer.accept(e));
 		mouseLocation = new Point2D(e.getX(), e.getY());
 	}
 
-	private void mouseClicked(MouseEvent e) {
-
-	}
-
-	private void mousePressed(MouseEvent e) {
+	private void pressed(MouseEvent e) {
 		System.out.println("Mouse pressed at: " + e.getX() + "," + e.getY());
 	}
 
-	private void mouseReleased(MouseEvent e) {
+	private void released(MouseEvent e) {
 		System.out.println("Mouse released at: " + e.getX() + "," + e.getY());
 	}
 
-	private void mouseEntered(MouseEvent e) {
+	private void clicked(MouseEvent e) {
+	}
+
+	private void entered(MouseEvent e) {
 		mouseOutsideWindow = false;
 	}
 
-	private void mouseExited(MouseEvent e) {
+	private void exited(MouseEvent e) {
 		mouseOutsideWindow = true;
 	}
 
-	private void mouseDragged(MouseEvent e) {
+	private void moved(MouseEvent e) {
 	}
 
-	private void mouseMoved(MouseEvent e) {
+	private void dragged(MouseEvent e) {
 	}
 
-	public Point2D mouseLocation() {
-		// TODO: Allow mouse location detection when outside window bounds
+	public Point2D location() {
+		if (mouseOutsideWindow) {
+			// TODO: Find a non-AWT way to get mouse location when it's outside window
+			Point mouse = MouseInfo.getPointerInfo().getLocation();
+			return new Point2D(mouse.x - stageX.get(), mouse.y - stageY.get());
+		}
 		return mouseLocation;
-	}
-
-	public boolean isMouseOutsideWindow() {
-		return mouseOutsideWindow;
 	}
 }
