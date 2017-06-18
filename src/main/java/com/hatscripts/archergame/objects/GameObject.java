@@ -2,8 +2,10 @@ package com.hatscripts.archergame.objects;
 
 import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
+import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -86,6 +88,7 @@ public abstract class GameObject {
 	public abstract void render(GraphicsContext g);
 
 	public void renderDebug(GraphicsContext g, double elapsed) {
+		g.save();
 		Point2D center = getCenterPoint();
 		g.setStroke(Color.RED);
 		g.strokeRect(center.getX() - 2, center.getY() - 2, 4, 4);
@@ -97,14 +100,17 @@ public abstract class GameObject {
 		});
 
 		if (maxSpeed > 0) {
+			g.setFill(Color.WHITE);
 			g.setStroke(Color.WHITE);
 			for (CollisionChecker collisionChecker : CollisionChecker.values()) {
 				Rectangle2D r = getBounds(collisionChecker, elapsed);
 				g.strokeRect(r.getMinX(), r.getMinY(), r.getWidth(), r.getHeight());
 			}
-
-			g.fillText("xSpeed: " + xSpeed + "\nySpeed: " + ySpeed, x, y);
+			g.setTextAlign(TextAlignment.CENTER);
+			g.setTextBaseline(VPos.TOP);
+			g.fillText("xSpeed: " + xSpeed + "\nySpeed: " + ySpeed, center.getX(), y + height + 10);
 		}
+		g.restore();
 	}
 
 	public ObjectType getType() {
@@ -167,8 +173,8 @@ public abstract class GameObject {
 		return new Point2D(x + (width / 2), y + (height / 2));
 	}
 
-	public double distanceTo(GameObject object) {
-		return distanceTo(object.getCenterPoint());
+	public double distanceTo(GameObject other) {
+		return distanceTo(other.getCenterPoint());
 	}
 
 	private double distanceTo(Point2D point) {
@@ -176,11 +182,9 @@ public abstract class GameObject {
 	}
 
 	public double angleTo(Point2D point) {
-		double angle = Math.toDegrees(Math.atan2(point.getY() - y, point.getX() - x));
-		if (angle < 0) {
-			angle += 360;
-		}
-		return angle;
+		Point2D center = getCenterPoint();
+		Point2D diff = center.subtract(point);
+		return Math.toDegrees(Math.atan2(diff.getX(), diff.getY()));
 	}
 
 	private void collisionCheck(double elapsed) {
