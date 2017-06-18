@@ -16,17 +16,17 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 class Game extends Canvas {
+	private final SimpleBooleanProperty debug;
 	private final GraphicsContext gc;
 	private final Objects objects;
 	private final AnimationTimer timer;
 	private final SimpleDoubleProperty fps = new SimpleDoubleProperty(0, "FPS");
 	private final SimpleLongProperty runtime = new SimpleLongProperty(0, "Runtime");
 
-	Game(double width, double height,
-		 KeyInput keyInput, MouseInput mouseInput) {
+	Game(double width, double height, KeyInput keyInput,
+		 MouseInput mouseInput, SimpleBooleanProperty debug) {
 		super(width, height);
-		SimpleBooleanProperty debug = new SimpleBooleanProperty(false, "Debug");
-		debug.bind(keyInput.debugProperty());
+		this.debug = debug;
 		objects = new Objects(debug);
 		objects.add(new Player(getWidth() / 2, getHeight() / 2, keyInput, mouseInput));
 
@@ -73,13 +73,14 @@ class Game extends Canvas {
 
 			objects.render(gc, getBoundsInLocal(), elapsed);
 
-			/* Debug */
-			gc.setFill(Color.WHITE);
-			gc.fillText(String.format("%s: %s\n%s: %.0f",
-					// TODO: Fix runtime showing as 10:MM:SS instead of HH:MM:SS
-					runtime.getName(), String.format("%1$tH:%1$tM:%1$tS", runtime.get()),
-					// TODO: Make FPS display smoother
-					fps.getName(), fps.get()), 10, 12);
+			if (debug.get()) {
+				gc.setFill(Color.WHITE);
+				gc.fillText(String.format("%s: %s\n%s: %.0f",
+						// TODO: Fix runtime showing as 10:MM:SS instead of HH:MM:SS
+						runtime.getName(), String.format("%1$tH:%1$tM:%1$tS", runtime.get()),
+						// TODO: Make FPS display smoother
+						fps.getName(), fps.get()), 10, 12);
+			}
 		});
 	}
 
