@@ -184,7 +184,9 @@ public abstract class GameObject {
 	public double angleTo(Point2D point) {
 		Point2D center = getCenterPoint();
 		Point2D diff = center.subtract(point);
-		return Math.toDegrees(Math.atan2(diff.getX(), diff.getY()));
+		double angle = Math.toDegrees(Math.atan2(diff.getY(), diff.getX()));
+		angle += Math.ceil(-angle / 360) * 360;
+		return angle;
 	}
 
 	private void collisionCheck(double elapsed) {
