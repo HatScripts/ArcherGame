@@ -10,6 +10,8 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
+import javafx.scene.text.TextAlignment;
+import javafx.scene.transform.Rotate;
 
 public class Player extends GameObject {
 	private static final class Colors {
@@ -20,13 +22,14 @@ public class Player extends GameObject {
 		private static final Color SCLERA = Color.WHITE;
 		private static final Color TOP = Color.color(0.16, 0.16, 0.16);
 		private static final Color BOW = Color.color(0.5, 0.4, 0.3);
-		private static final Color BOWSTRING = Color.color(1, 1, 1, 0.75);
+		private static final Color BOWSTRING = Color.WHITE;
 	}
 
 	private static final Dimension2D EYE = new Dimension2D(6, 4);
 	private static final Dimension2D PUPIL = new Dimension2D(EYE.getWidth() / 1.5, EYE.getHeight());
 	private static final Dimension2D MOUTH = new Dimension2D(5, 1);
 	private static final double BOW_SIZE = ObjectType.PLAYER.getHeight();
+	private static final double HAND_SIZE = 8;
 	private final KeyInput keyInput;
 	private final MouseInput mouseInput;
 
@@ -62,20 +65,38 @@ public class Player extends GameObject {
 		g.fillRect(x + 1, y, MOUTH.getWidth() - 2, MOUTH.getHeight());
 	}
 
+	/**
+	 * Sets the transform for the GraphicsContext to rotate around a pivot point.
+	 *
+	 * @param g     the graphics context the transform to applied to
+	 * @param angle the angle of rotation
+	 * @param px    the x pivot co-ordinate for the rotation (in canvas co-ordinates)
+	 * @param py    the y pivot co-ordinate for the rotation (in canvas co-ordinates)
+	 */
+	private void rotate(GraphicsContext g, double angle, double px, double py) {
+		Rotate r = new Rotate(angle, px, py);
+		g.setTransform(r.getMxx(), r.getMyx(), r.getMxy(), r.getMyy(), r.getTx(), r.getTy());
+	}
+
 	private void drawBow(GraphicsContext g) {
 		g.save();
 		Point2D center = getCenterPoint();
-		double angleToMouse = this.angleTo(mouseInput.location());
-		double x = center.getX() - BOW_SIZE / 2;
-		double y = center.getY() - BOW_SIZE / 2;
+		double angleToMouse = this.angleTo(mouseInput.location()) - 90;
+		double centerX = center.getX();
+		double centerY = center.getY();
+		rotate(g, angleToMouse, centerX, centerY);
 		g.setStroke(Colors.BOWSTRING);
 		g.setLineWidth(1);
-		int arcExtent = 100;
-		double startAngle = angleToMouse - arcExtent / 2 + 90;
-		g.strokeArc(x, y, BOW_SIZE, BOW_SIZE, startAngle, arcExtent, ArcType.CHORD);
+		//g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, 0, arcExtent, ArcType.CHORD);
+		double bowX = centerX - BOW_SIZE / 2;
+		double bowY = centerY - BOW_SIZE / 2;
+		g.strokeLine(bowX + 10, bowY + 8, bowX + BOW_SIZE - 10, bowY + 8);
 		g.setStroke(Colors.BOW);
 		g.setLineWidth(3);
-		g.strokeArc(x, y, BOW_SIZE, BOW_SIZE, startAngle, arcExtent, ArcType.OPEN);
+		int arcExtent = 90;
+		g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, arcExtent / 2, arcExtent, ArcType.OPEN);
+		g.setFill(Colors.SKIN);
+		g.fillOval(centerX - HAND_SIZE / 2, bowY - HAND_SIZE / 2, HAND_SIZE, HAND_SIZE);
 		g.restore();
 	}
 
@@ -122,6 +143,7 @@ public class Player extends GameObject {
 	@Override
 	public void renderDebug(GraphicsContext g, double elapsed) {
 		super.renderDebug(g, elapsed);
+		g.save();
 		Point2D center = getCenterPoint();
 		Point2D mouse = mouseInput.location();
 		double bowX = center.getX() - BOW_SIZE / 2;
@@ -129,6 +151,10 @@ public class Player extends GameObject {
 		g.setStroke(Color.WHITE);
 		g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, 0, 360, ArcType.OPEN);
 		g.strokeLine(center.getX(), center.getY(), mouse.getX(), mouse.getY());
-		g.fillText(String.format("%fdeg", this.angleTo(mouse)), mouse.getX() + 10, mouse.getY());
+		g.setTextAlign(TextAlignment.LEFT);
+		g.fillText(String.format("%.2f°", this.angleTo(mouse)), mouse.getX() + 10, mouse.getY());
+		g.setTextAlign(TextAlignment.RIGHT);
+		g.fillText(String.format("x%.0f\ny%.0f", mouse.getX(), mouse.getY()), mouse.getX() - 10, mouse.getY());
+		g.restore();
 	}
 }
