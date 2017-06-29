@@ -11,11 +11,6 @@ import java.util.Map;
 
 public class KeyInput implements EventHandler<KeyEvent> {
 	private static final Map<MovementKey, Boolean> KEYS_HELD;
-	private final SimpleBooleanProperty debug;
-
-	public KeyInput(SimpleBooleanProperty debug) {
-		this.debug = debug;
-	}
 
 	static {
 		MovementKey[] values = MovementKey.values();
@@ -24,6 +19,12 @@ public class KeyInput implements EventHandler<KeyEvent> {
 			map.put(key, false);
 		}
 		KEYS_HELD = map;
+	}
+
+	private final SimpleBooleanProperty debug;
+
+	public KeyInput(boolean debugEnabled) {
+		this.debug = new SimpleBooleanProperty(debugEnabled);
 	}
 
 	@Override
@@ -45,5 +46,20 @@ public class KeyInput implements EventHandler<KeyEvent> {
 
 	public boolean isKeyHeld(MovementKey key) {
 		return KEYS_HELD.get(key);
+	}
+
+	public SimpleBooleanProperty debugProperty() {
+		return debug;
+	}
+
+	@Override
+	public String toString() {
+		return KEYS_HELD.keySet().stream()
+				.filter(this::isKeyHeld)
+				.map(MovementKey::toChar)
+				.collect(StringBuilder::new,
+						StringBuilder::appendCodePoint,
+						StringBuilder::append)
+				.toString();
 	}
 }
