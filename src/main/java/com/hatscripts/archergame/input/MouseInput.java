@@ -1,7 +1,6 @@
 package com.hatscripts.archergame.input;
 
 import javafx.beans.property.ReadOnlyDoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.geometry.Point2D;
@@ -17,13 +16,13 @@ import java.util.function.Consumer;
 public class MouseInput implements EventHandler<MouseEvent> {
 	private Point2D mouseLocation = null;
 	private boolean mouseOutsideWindow = true;
-	private final Map<EventType<? extends MouseEvent>, Consumer<MouseEvent>> MOUSE_EVENT_METHODS;
-	private final SimpleDoubleProperty stageX = new SimpleDoubleProperty();
-	private final SimpleDoubleProperty stageY = new SimpleDoubleProperty();
+	private final Map<EventType<? extends MouseEvent>, Consumer<MouseEvent>> mouseEventMethods;
+	private final ReadOnlyDoubleProperty stageX;
+	private final ReadOnlyDoubleProperty stageY;
 
 	public MouseInput(ReadOnlyDoubleProperty stageX, ReadOnlyDoubleProperty stageY) {
-		this.stageX.bind(stageX);
-		this.stageY.bind(stageY);
+		this.stageX = stageX;
+		this.stageY = stageY;
 
 		Map<EventType<? extends MouseEvent>, Consumer<MouseEvent>> map = new HashMap<>();
 		map.put(MouseEvent.MOUSE_PRESSED, this::pressed);
@@ -33,12 +32,12 @@ public class MouseInput implements EventHandler<MouseEvent> {
 		map.put(MouseEvent.MOUSE_EXITED, this::exited);
 		map.put(MouseEvent.MOUSE_MOVED, this::moved);
 		map.put(MouseEvent.MOUSE_DRAGGED, this::dragged);
-		MOUSE_EVENT_METHODS = Collections.unmodifiableMap(map);
+		mouseEventMethods = Collections.unmodifiableMap(map);
 	}
 
 	@Override
 	public void handle(MouseEvent e) {
-		Optional.ofNullable(MOUSE_EVENT_METHODS.get(e.getEventType()))
+		Optional.ofNullable(mouseEventMethods.get(e.getEventType()))
 				.ifPresent(consumer -> consumer.accept(e));
 		mouseLocation = new Point2D(e.getX(), e.getY());
 	}
@@ -75,5 +74,11 @@ public class MouseInput implements EventHandler<MouseEvent> {
 			return new Point2D(mouse.x - stageX.get(), mouse.y - stageY.get());
 		}
 		return mouseLocation;
+	}
+
+	@Override
+	public String toString() {
+		Point2D location = location();
+		return String.format("%.0f,%.0f", location.getX(), location.getY());
 	}
 }
