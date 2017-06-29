@@ -10,8 +10,6 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -19,7 +17,7 @@ public class Main extends Application {
 	private Game game;
 
 	@Override
-	public void start(Stage stage) throws IOException, URISyntaxException {
+	public void start(Stage stage) {
 		Group root = new Group();
 		Scene scene = new Scene(root);
 
