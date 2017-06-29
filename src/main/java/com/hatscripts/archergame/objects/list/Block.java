@@ -1,13 +1,13 @@
 package com.hatscripts.archergame.objects.list;
 
-import com.hatscripts.archergame.objects.GameObject;
-import com.hatscripts.archergame.objects.ObjectType;
+import com.hatscripts.archergame.objects.AbstractGameObject;
+import com.hatscripts.archergame.objects.interfaces.Solid;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
-public class Block extends GameObject {
-	public Block(double x, double y) {
-		super(ObjectType.BLOCK, x, y);
+public class Block extends AbstractGameObject implements Solid {
+	private Block(double x, double y, double width, double height) {
+		super(x, y, width, height);
 	}
 
 	@Override

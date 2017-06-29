@@ -3,8 +3,9 @@ package com.hatscripts.archergame.objects.list;
 import com.hatscripts.archergame.input.KeyInput;
 import com.hatscripts.archergame.input.MouseInput;
 import com.hatscripts.archergame.input.MovementKey;
-import com.hatscripts.archergame.objects.GameObject;
+import com.hatscripts.archergame.objects.AbstractMobileObject;
 import com.hatscripts.archergame.objects.ObjectType;
+import com.hatscripts.archergame.objects.interfaces.Mobile;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -13,7 +14,7 @@ import javafx.scene.shape.ArcType;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.transform.Rotate;
 
-public class Player extends GameObject {
+public class Player extends AbstractMobileObject {
 	private static final class Colors {
 		private static final Color SKIN = Color.color(0.94, 0.76, 0.68);
 		private static final Color MOUTH = SKIN.interpolate(Color.BLACK, 0.5);
@@ -28,26 +29,27 @@ public class Player extends GameObject {
 	private static final Dimension2D EYE = new Dimension2D(6, 4);
 	private static final Dimension2D PUPIL = new Dimension2D(EYE.getWidth() / 1.5, EYE.getHeight());
 	private static final Dimension2D MOUTH = new Dimension2D(5, 1);
-	private static final double BOW_SIZE = ObjectType.PLAYER.getHeight();
+	private static final double BOW_SIZE = ObjectType.PLAYER.getSize().getHeight();
 	private static final double HAND_SIZE = 8;
 	private final KeyInput keyInput;
 	private final MouseInput mouseInput;
 
-	public Player(double x, double y, KeyInput keyInput, MouseInput mouseInput) {
-		super(ObjectType.PLAYER, x, y);
+	public Player(double x, double y, double width, double height,
+				  KeyInput keyInput, MouseInput mouseInput) {
+		super(x, y, width, height, 200);
 		this.keyInput = keyInput;
 		this.mouseInput = mouseInput;
 	}
 
 	private static void drawEye(GraphicsContext g, double x, double y, MouseInput mouseInput) {
 		// TODO: Add eyelids; blinking, squinting, etc.
+		// TODO: Make pupil follow cursor vertically as well, not just horizontally.
 
 		/* Sclera */
 		g.setFill(Colors.SCLERA);
 		g.fillRect(x, y, EYE.getWidth(), EYE.getHeight());
 
 		/* Pupil */
-		// TODO: Make pupil follow cursor vertically as well, not just horizontally.
 		g.setFill(Colors.PUPIL);
 		double pupilX = mouseInput.location().getX();
 		pupilX = Math.max(pupilX, x);
@@ -79,6 +81,7 @@ public class Player extends GameObject {
 	}
 
 	private void drawBow(GraphicsContext g) {
+		// TODO: Add arrow(s), and hand that holds them.
 		g.save();
 		Point2D center = getCenterPoint();
 		double angleToMouse = this.angleTo(mouseInput.location()) - 90;
@@ -87,7 +90,6 @@ public class Player extends GameObject {
 		rotate(g, angleToMouse, centerX, centerY);
 		g.setStroke(Colors.BOWSTRING);
 		g.setLineWidth(1);
-		//g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, 0, arcExtent, ArcType.CHORD);
 		double bowX = centerX - BOW_SIZE / 2;
 		double bowY = centerY - BOW_SIZE / 2;
 		g.strokeLine(bowX + 10, bowY + 8, bowX + BOW_SIZE - 10, bowY + 8);
@@ -96,8 +98,13 @@ public class Player extends GameObject {
 		int arcExtent = 90;
 		g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, arcExtent / 2, arcExtent, ArcType.OPEN);
 		g.setFill(Colors.SKIN);
-		g.fillOval(centerX - HAND_SIZE / 2, bowY - HAND_SIZE / 2, HAND_SIZE, HAND_SIZE);
+		drawHand(g, centerX, bowY);
 		g.restore();
+	}
+
+	private void drawHand(GraphicsContext g, double x, double y) {
+		g.setFill(Colors.SKIN);
+		g.fillOval(x - HAND_SIZE / 2, y - HAND_SIZE / 2, HAND_SIZE, HAND_SIZE);
 	}
 
 	@Override
@@ -105,8 +112,8 @@ public class Player extends GameObject {
 		for (MovementKey key : MovementKey.values()) {
 			boolean slow = !keyInput.isKeyHeld(key) || keyInput.isKeyHeld(key.opposite());
 			double stepSize = slow ? maxSpeed / 50 : maxSpeed / 10;
-			xSpeed = alterSpeed(xSpeed, stepSize * key.getXAdjustment(), slow);
-			ySpeed = alterSpeed(ySpeed, stepSize * key.getYAdjustment(), slow);
+			xSpeed = Mobile.alterSpeed(xSpeed, stepSize * key.getXAdjustment(), slow);
+			ySpeed = Mobile.alterSpeed(ySpeed, stepSize * key.getYAdjustment(), slow);
 		}
 		super.tick(elapsed);
 	}
@@ -146,15 +153,14 @@ public class Player extends GameObject {
 		g.save();
 		Point2D center = getCenterPoint();
 		Point2D mouse = mouseInput.location();
-		double bowX = center.getX() - BOW_SIZE / 2;
-		double bowY = center.getY() - BOW_SIZE / 2;
-		g.setStroke(Color.WHITE);
-		g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, 0, 360, ArcType.OPEN);
+		//double bowX = center.getX() - BOW_SIZE / 2;
+		//double bowY = center.getY() - BOW_SIZE / 2;
+		//g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, 0, 360, ArcType.OPEN);
 		g.strokeLine(center.getX(), center.getY(), mouse.getX(), mouse.getY());
 		g.setTextAlign(TextAlignment.LEFT);
-		g.fillText(String.format("%.2f°", this.angleTo(mouse)), mouse.getX() + 10, mouse.getY());
-		g.setTextAlign(TextAlignment.RIGHT);
-		g.fillText(String.format("x%.0f\ny%.0f", mouse.getX(), mouse.getY()), mouse.getX() - 10, mouse.getY());
+		g.fillText(String.format("%.2f°\n%.2fpx",
+				this.angleTo(mouse), this.distanceTo(mouse)),
+				mouse.getX() + 20, mouse.getY());
 		g.restore();
 	}
 }

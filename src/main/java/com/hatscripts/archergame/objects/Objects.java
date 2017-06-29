@@ -1,6 +1,9 @@
 package com.hatscripts.archergame.objects;
 
-import com.sun.istack.internal.NotNull;
+import com.hatscripts.archergame.input.KeyInput;
+import com.hatscripts.archergame.input.MouseInput;
+import com.hatscripts.archergame.objects.interfaces.GameObject;
+import com.hatscripts.archergame.objects.interfaces.Solid;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Bounds;
 import javafx.geometry.Rectangle2D;
@@ -15,10 +18,13 @@ import java.util.stream.Stream;
 
 public class Objects {
 	private final LinkedList<GameObject> objectList = new LinkedList<>();
-	private final SimpleBooleanProperty debug;
+	private final SimpleBooleanProperty debug = new SimpleBooleanProperty();
+	private final KeyInput keyInput;
+	private final MouseInput mouseInput;
 
-	public Objects(SimpleBooleanProperty debug) {
-		this.debug = debug;
+	public Objects(KeyInput keyInput, MouseInput mouseInput) {
+		this.keyInput = keyInput;
+		this.mouseInput = mouseInput;
 	}
 
 	private static Optional<GameObject> nearestTo(GameObject object, Stream<GameObject> stream) {
@@ -35,20 +41,23 @@ public class Objects {
 		}
 	}
 
-	public void render(GraphicsContext gc, Bounds gameBounds, double elapsed) {
+	public void render(GraphicsContext g, Bounds gameBounds, double elapsed) {
 		for (GameObject object : objectList) {
 			if (object.isInBounds(gameBounds)) {
-				object.render(gc);
+				object.render(g);
 				if (debug.get()) {
-					object.renderDebug(gc, elapsed);
+					object.renderDebugDefault(g, elapsed);
 				}
 			}
 		}
 	}
 
-	public void add(GameObject object) {
+	public GameObject add(ObjectType type, double x, double y) {
+		GameObject object = type.createObject(x, y, keyInput, mouseInput);
 		object.setObjects(this);
+		object.init();
 		objectList.add(object);
+		return object;
 	}
 
 	public void remove(GameObject object) {
@@ -60,21 +69,22 @@ public class Objects {
 				.filter(other -> other != object));
 	}
 
-	public Optional<GameObject> nearestTo(GameObject object, @NotNull ObjectType type) {
+	public Optional<GameObject> nearestTo(GameObject object, Class<? extends GameObject> clazz) {
 		return nearestTo(object,
 				objectList.stream().filter(other -> other != object
-						&& type == other.getType()));
+						&& clazz.isInstance(other)));
 	}
 
-	List<Rectangle2D> getCollisions(GameObject object) {
-		if (!object.isSolid()) {
-			throw new IllegalArgumentException("Object must be solid to perform a collision check");
-		}
+	List<Rectangle2D> getCollisions(Solid object) {
 		return objectList.stream()
 				.filter(other -> other != object
-						&& other.isSolid()
+						&& other instanceof Solid
 						&& object.getBounds().intersects(other.getBounds()))
 				.map(GameObject::getBounds)
 				.collect(Collectors.toList());
+	}
+
+	public SimpleBooleanProperty debugProperty() {
+		return debug;
 	}
 }
