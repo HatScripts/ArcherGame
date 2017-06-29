@@ -5,21 +5,19 @@ import com.hatscripts.archergame.input.MouseInput;
 import com.hatscripts.archergame.objects.AbstractGameObject;
 import com.hatscripts.archergame.objects.interfaces.Debuggable;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleLongProperty;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Debug extends AbstractGameObject {
 	private final long startTime = System.nanoTime();
 	private final SimpleBooleanProperty enabled = new SimpleBooleanProperty();
-	private final SimpleLongProperty runtime = new SimpleLongProperty(null, "Runtime", 0);
-	private final SimpleDoubleProperty fps = new SimpleDoubleProperty(null, "FPS", 0);
-	private final SimpleStringProperty keys = new SimpleStringProperty(null, "Keys", "");
-	private final SimpleStringProperty mouse = new SimpleStringProperty(null, "Mouse", "");
 	private final KeyInput keyInput;
 	private final MouseInput mouseInput;
+	private final Map<DebugVar, Object> debugVars;
 
 	private enum DebugVar {
 		RUNTIME("Runtime", "%1$tH:%1$tM:%1$tS"),
@@ -45,6 +43,12 @@ public class Debug extends AbstractGameObject {
 		this.keyInput = keyInput;
 		this.mouseInput = mouseInput;
 		enabled.bind(keyInput.debugProperty());
+
+		DebugVar[] debugVarArray = DebugVar.values();
+		this.debugVars = new HashMap<>(debugVarArray.length);
+		for (DebugVar debugVar : debugVarArray) {
+			this.debugVars.put(debugVar, null);
+		}
 	}
 
 	@Override
@@ -54,10 +58,10 @@ public class Debug extends AbstractGameObject {
 
 	@Override
 	public void tick(double elapsed) {
-		runtime.set((System.nanoTime() - startTime) / 1_000_000);
-		fps.set(1 / elapsed);
-		keys.set(keyInput.toString());
-		mouse.set(mouseInput.toString());
+		debugVars.put(DebugVar.RUNTIME, (System.nanoTime() - startTime) / 1_000_000);
+		debugVars.put(DebugVar.FPS, 1 / elapsed);
+		debugVars.put(DebugVar.KEYS, keyInput.toString());
+		debugVars.put(DebugVar.MOUSE, mouseInput.toString());
 	}
 
 	@Override
@@ -69,14 +73,12 @@ public class Debug extends AbstractGameObject {
 	public void renderDebug(GraphicsContext g, double elapsed) {
 		g.setFont(Debuggable.DEBUG_FONT);
 		g.setTextBaseline(VPos.TOP);
-		g.fillText(String.format(
-				"%s: %s\n%s: %.0f\n%s: %s\n%s: %s",
-				// TODO: Fix runtime showing as 10:MM:SS instead of HH:MM:SS
-				runtime.getName(), String.format("%1$tH:%1$tM:%1$tS", runtime.get()),
-				// TODO: Make FPS display smoother
-				fps.getName(), fps.get(),
-				keys.getName(), keys.get(),
-				mouse.getName(), mouse.get()
-		), 50, 50);
+		// TODO: Fix runtime showing as 10:MM:SS instead of HH:MM:SS
+		// TODO: Make FPS display smoother
+		String debug = debugVars.entrySet()
+				.stream()
+				.map(entry -> entry.getKey().format(entry.getValue()))
+				.collect(Collectors.joining("\n"));
+		g.fillText(debug, 50, 50);
 	}
 }
