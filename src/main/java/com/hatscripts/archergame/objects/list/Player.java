@@ -6,6 +6,7 @@ import com.hatscripts.archergame.input.MovementKey;
 import com.hatscripts.archergame.objects.AbstractMobileObject;
 import com.hatscripts.archergame.objects.ObjectType;
 import com.hatscripts.archergame.objects.interfaces.Mobile;
+import com.hatscripts.archergame.utils.Angles;
 import javafx.geometry.Dimension2D;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -33,6 +34,7 @@ public class Player extends AbstractMobileObject {
 	private static final double HAND_SIZE = 8;
 	private final KeyInput keyInput;
 	private final MouseInput mouseInput;
+	private double bowAngle;
 
 	public Player(double x, double y, double width, double height,
 				  KeyInput keyInput, MouseInput mouseInput) {
@@ -84,10 +86,10 @@ public class Player extends AbstractMobileObject {
 		// TODO: Add arrow(s), and hand that holds them.
 		g.save();
 		Point2D center = getCenterPoint();
-		double angleToMouse = this.angleTo(mouseInput.location()) - 90;
 		double centerX = center.getX();
 		double centerY = center.getY();
-		rotate(g, angleToMouse, centerX, centerY);
+		int arcExtent = 90;
+		rotate(g, bowAngle - arcExtent, centerX, centerY);
 		g.setStroke(Colors.BOWSTRING);
 		g.setLineWidth(1);
 		double bowX = centerX - BOW_SIZE / 2;
@@ -95,7 +97,6 @@ public class Player extends AbstractMobileObject {
 		g.strokeLine(bowX + 10, bowY + 8, bowX + BOW_SIZE - 10, bowY + 8);
 		g.setStroke(Colors.BOW);
 		g.setLineWidth(3);
-		int arcExtent = 90;
 		g.strokeArc(bowX, bowY, BOW_SIZE, BOW_SIZE, arcExtent / 2, arcExtent, ArcType.OPEN);
 		g.setFill(Colors.SKIN);
 		drawHand(g, centerX, bowY);
@@ -109,6 +110,8 @@ public class Player extends AbstractMobileObject {
 
 	@Override
 	public void tick(double elapsed) {
+		bowAngle = Angles.average(bowAngle, this.angleTo(mouseInput.location()), elapsed * 10);
+
 		for (MovementKey key : MovementKey.values()) {
 			boolean slow = !keyInput.isKeyHeld(key) || keyInput.isKeyHeld(key.opposite());
 			double stepSize = slow ? maxSpeed / 50 : maxSpeed / 10;
