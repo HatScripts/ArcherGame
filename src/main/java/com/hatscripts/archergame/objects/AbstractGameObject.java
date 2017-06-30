@@ -1,6 +1,7 @@
 package com.hatscripts.archergame.objects;
 
 import com.hatscripts.archergame.objects.interfaces.GameObject;
+import com.hatscripts.archergame.utils.Angles;
 import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -98,11 +99,7 @@ public abstract class AbstractGameObject implements GameObject {
 
 	@Override
 	public double angleTo(Point2D point) {
-		Point2D center = getCenterPoint();
-		Point2D diff = center.subtract(point);
-		double angle = Math.toDegrees(Math.atan2(diff.getY(), diff.getX()));
-		angle += Math.ceil(-angle / 360) * 360;
-		return angle;
+		return Angles.angleBetween(getCenterPoint(), point);
 	}
 
 	@Override
