@@ -8,19 +8,20 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
 
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Debug extends AbstractGameObject {
-	private final long startTime = System.nanoTime();
+	private final long startTime = LocalTime.now().toNanoOfDay();
 	private final SimpleBooleanProperty enabled = new SimpleBooleanProperty();
 	private final KeyInput keyInput;
 	private final MouseInput mouseInput;
 	private final Map<DebugVar, Object> debugVars;
 
 	private enum DebugVar {
-		RUNTIME("Runtime", "%1$tH:%1$tM:%1$tS"),
+		RUNTIME("Runtime", "%s"),
 		FPS("FPS", "%.0f"),
 		KEYS("Keys", "%s"),
 		MOUSE("Mouse", "%s");
@@ -58,7 +59,7 @@ public class Debug extends AbstractGameObject {
 
 	@Override
 	public void tick(double elapsed) {
-		debugVars.put(DebugVar.RUNTIME, (System.nanoTime() - startTime) / 1_000_000);
+		debugVars.put(DebugVar.RUNTIME, LocalTime.now().minusNanos(startTime));
 		debugVars.put(DebugVar.FPS, 1 / elapsed);
 		debugVars.put(DebugVar.KEYS, keyInput.toString());
 		debugVars.put(DebugVar.MOUSE, mouseInput.toString());
@@ -73,11 +74,10 @@ public class Debug extends AbstractGameObject {
 	public void renderDebug(GraphicsContext g, double elapsed) {
 		g.setFont(Debuggable.DEBUG_FONT);
 		g.setTextBaseline(VPos.TOP);
-		// TODO: Fix runtime showing as 10:MM:SS instead of HH:MM:SS
 		// TODO: Make FPS display smoother
-		String debug = debugVars.entrySet()
-				.stream()
+		String debug = debugVars.entrySet().stream()
 				.map(entry -> entry.getKey().format(entry.getValue()))
+				.sorted()
 				.collect(Collectors.joining("\n"));
 		g.fillText(debug, 50, 50);
 	}
