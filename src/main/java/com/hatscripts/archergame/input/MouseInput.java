@@ -7,16 +7,15 @@ import javafx.geometry.Point2D;
 import javafx.scene.input.MouseEvent;
 
 import java.awt.*;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class MouseInput implements EventHandler<MouseEvent> {
 	private Point2D mouseLocation = null;
 	private boolean mouseOutsideWindow = true;
-	private final Map<EventType<? extends MouseEvent>, Consumer<MouseEvent>> mouseEventMethods;
+	private final Map<EventType<? extends MouseEvent>, ArrayList<EventHandler<MouseEvent>>> mouseEventHandlers;
 	private final ReadOnlyDoubleProperty stageX;
 	private final ReadOnlyDoubleProperty stageY;
 
@@ -24,47 +23,52 @@ public class MouseInput implements EventHandler<MouseEvent> {
 		this.stageX = stageX;
 		this.stageY = stageY;
 
-		Map<EventType<? extends MouseEvent>, Consumer<MouseEvent>> map = new HashMap<>();
-		map.put(MouseEvent.MOUSE_PRESSED, this::pressed);
-		map.put(MouseEvent.MOUSE_RELEASED, this::released);
-		map.put(MouseEvent.MOUSE_CLICKED, this::clicked);
-		map.put(MouseEvent.MOUSE_ENTERED, this::entered);
-		map.put(MouseEvent.MOUSE_EXITED, this::exited);
-		map.put(MouseEvent.MOUSE_MOVED, this::moved);
-		map.put(MouseEvent.MOUSE_DRAGGED, this::dragged);
-		mouseEventMethods = Collections.unmodifiableMap(map);
+		mouseEventHandlers = new HashMap<>();
+		mouseEventHandlers.put(MouseEvent.MOUSE_PRESSED, new ArrayList<>());
+		mouseEventHandlers.put(MouseEvent.MOUSE_RELEASED, new ArrayList<>());
+		mouseEventHandlers.put(MouseEvent.MOUSE_CLICKED, new ArrayList<>());
+		mouseEventHandlers.put(MouseEvent.MOUSE_ENTERED, new ArrayList<>());
+		mouseEventHandlers.put(MouseEvent.MOUSE_EXITED, new ArrayList<>());
+		mouseEventHandlers.put(MouseEvent.MOUSE_MOVED, new ArrayList<>());
+		mouseEventHandlers.put(MouseEvent.MOUSE_DRAGGED, new ArrayList<>());
+
+		addOnEntered(e -> mouseOutsideWindow = false);
+		addOnExited(e -> mouseOutsideWindow = true);
 	}
 
 	@Override
 	public void handle(MouseEvent e) {
-		Optional.ofNullable(mouseEventMethods.get(e.getEventType()))
-				.ifPresent(consumer -> consumer.accept(e));
+		Optional.ofNullable(mouseEventHandlers.get(e.getEventType()))
+				.ifPresent(handlers -> handlers.forEach(handler -> handler.handle(e)));
 		mouseLocation = new Point2D(e.getX(), e.getY());
 	}
 
-	private void pressed(MouseEvent e) {
-		System.out.println("Mouse pressed at: " + e.getX() + "," + e.getY());
+	public void addOnPressed(EventHandler<MouseEvent> e) {
+		mouseEventHandlers.get(MouseEvent.MOUSE_PRESSED).add(e);
 	}
 
-	private void released(MouseEvent e) {
-		System.out.println("Mouse released at: " + e.getX() + "," + e.getY());
+	public void addOnReleased(EventHandler<MouseEvent> e) {
+		mouseEventHandlers.get(MouseEvent.MOUSE_RELEASED).add(e);
 	}
 
-	private void clicked(MouseEvent e) {
+	public void addOnClicked(EventHandler<MouseEvent> e) {
+		mouseEventHandlers.get(MouseEvent.MOUSE_CLICKED).add(e);
 	}
 
-	private void entered(MouseEvent e) {
-		mouseOutsideWindow = false;
+	public void addOnEntered(EventHandler<MouseEvent> e) {
+		mouseEventHandlers.get(MouseEvent.MOUSE_ENTERED).add(e);
 	}
 
-	private void exited(MouseEvent e) {
-		mouseOutsideWindow = true;
+	public void addOnExited(EventHandler<MouseEvent> e) {
+		mouseEventHandlers.get(MouseEvent.MOUSE_EXITED).add(e);
 	}
 
-	private void moved(MouseEvent e) {
+	public void addOnMoved(EventHandler<MouseEvent> e) {
+		mouseEventHandlers.get(MouseEvent.MOUSE_MOVED).add(e);
 	}
 
-	private void dragged(MouseEvent e) {
+	public void addOnDragged(EventHandler<MouseEvent> e) {
+		mouseEventHandlers.get(MouseEvent.MOUSE_DRAGGED).add(e);
 	}
 
 	public Point2D location() {
