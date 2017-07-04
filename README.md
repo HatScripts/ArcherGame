@@ -1,8 +1,10 @@
 # ArcherGame <img src="https://cdn.rawgit.com/HatScripts/ArcherGame/master/logo.svg" alt="ArcherGame logo" height="48" align="right">
 
-A top-down 2D action game.
+ArcherGame* is a top-down 2D action game**.
 
-This is a work in progress, and there's no real gameplay to it yet. "ArcherGame" is a working title/placeholder until I decide on an official name.
+<sup><a name="footnote1">*</a> "ArcherGame" is just a working title/placeholder until I decide on an official name.</sup>
+
+<sup><a name="footnote2">**</a> This is very much a work in progress, and there's no real gameplay to it yet.</sup>
 
 ## Download
 
@@ -10,7 +12,7 @@ See [releases](https://github.com/HatScripts/ArcherGame/releases).
 
 ## Controls
 
-Shortcut                     | Description
+Key(s)                       | Description
 -----------------------------|------------
 <kbd>W</kbd> or <kbd>↑</kbd> | Walk up
 <kbd>S</kbd> or <kbd>↓</kbd> | Walk down
@@ -20,7 +22,7 @@ Shortcut                     | Description
 
 ##### Debug mode
 
-Shortcut                             | Description
+Key(s)                               | Description
 -------------------------------------|------------
 Left-click and drag                  | Create a square object
 <kbd>Ctrl</kbd>+Left-click and drag  | Create a circle object
