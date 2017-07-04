@@ -33,7 +33,8 @@ public class Main extends Application {
 		scene.addEventFilter(MouseEvent.ANY, mouseInput);
 
 		double height = 720;
-		game = new Game(height * (16d / 9), height, keyInput, mouseInput);
+		double width = height * (16d / 9);
+		game = new Game(width, height, keyInput, mouseInput);
 		root.getChildren().add(game);
 
 		stage.setTitle("Archer Game");
