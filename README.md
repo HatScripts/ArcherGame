@@ -31,7 +31,7 @@ Right-click and drag                 | Delete objects
 
 ## Todo
 
-- [ ] MouseInput - Find a pure JavaFX (non-AWT) way to get the mouse location when it's outside the window
+- [ ] MouseInput - Find a pure JavaFX (non-[AWT](https://docs.oracle.com/javase/8/docs/api/java/awt/PointerInfo.html#getLocation--)) way to get the mouse location when it's outside the window
 - [ ] Circle - Make collision box circular
 - [ ] Triangle - Make collision box triangular
 - [x] Debug - Fix runtime showing as `10:MM:SS` instead of `HH:MM:SS`
