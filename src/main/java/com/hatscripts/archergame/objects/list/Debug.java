@@ -3,10 +3,15 @@ package com.hatscripts.archergame.objects.list;
 import com.hatscripts.archergame.input.KeyInput;
 import com.hatscripts.archergame.input.MouseInput;
 import com.hatscripts.archergame.objects.AbstractGameObject;
+import com.hatscripts.archergame.objects.ObjectType;
 import com.hatscripts.archergame.objects.interfaces.Debuggable;
+import com.hatscripts.archergame.utils.Rectangles;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
 import java.time.LocalTime;
 import java.util.HashMap;
@@ -19,6 +24,7 @@ public class Debug extends AbstractGameObject {
 	private final KeyInput keyInput;
 	private final MouseInput mouseInput;
 	private final Map<DebugVar, Object> debugVars;
+	private Point2D pressed;
 
 	private enum DebugVar {
 		RUNTIME("Runtime", "%s"),
@@ -50,6 +56,28 @@ public class Debug extends AbstractGameObject {
 		for (DebugVar debugVar : debugVarArray) {
 			this.debugVars.put(debugVar, null);
 		}
+		mouseInput.addOnPressed(e -> {
+			if (enabled.get()) {
+				pressed = mouseInput.location();
+			}
+		});
+		mouseInput.addOnReleased(e -> {
+			if (enabled.get() && pressed != null) {
+				Rectangle2D rect = Rectangles.pointsToRect(pressed, mouseInput.location());
+				switch (e.getButton()) {
+					case PRIMARY:
+						ObjectType type = e.isControlDown() ? ObjectType.CIRCLE :
+								e.isShiftDown() ? ObjectType.TRIANGLE :
+										ObjectType.BLOCK;
+						objects.add(type, rect);
+						break;
+					case SECONDARY:
+						objects.remove(rect);
+						break;
+				}
+				pressed = null;
+			}
+		});
 	}
 
 	@Override
@@ -80,5 +108,12 @@ public class Debug extends AbstractGameObject {
 				.sorted()
 				.collect(Collectors.joining("\n"));
 		g.fillText(debug, 50, 50);
+
+		if (pressed != null) {
+			Point2D mouse = mouseInput.location();
+			Rectangle2D rect = Rectangles.pointsToRect(pressed, mouse);
+			g.setStroke(Color.WHITE);
+			g.strokeRect(rect.getMinX(), rect.getMinY(), rect.getWidth(), rect.getHeight());
+		}
 	}
 }
