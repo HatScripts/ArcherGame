@@ -53,7 +53,15 @@ public class Objects {
 	}
 
 	public GameObject add(ObjectType type, double x, double y) {
-		GameObject object = type.createObject(x, y, keyInput, mouseInput);
+		return add(type, x, y, -1, -1);
+	}
+
+	public GameObject add(ObjectType type, Rectangle2D rect) {
+		return add(type, rect.getMinX(), rect.getMinY(), rect.getWidth(), rect.getHeight());
+	}
+
+	public GameObject add(ObjectType type, double x, double y, double width, double height) {
+		GameObject object = type.createObject(x, y, width, height, keyInput, mouseInput);
 		object.setObjects(this);
 		object.init();
 		objectList.add(object);
@@ -62,6 +70,13 @@ public class Objects {
 
 	public void remove(GameObject object) {
 		objectList.remove(object);
+	}
+
+	public void remove(Rectangle2D rect) {
+		objectList.stream()
+				.filter(object -> object.getBounds().intersects(rect))
+				.collect(Collectors.toList())
+				.forEach(this::remove);
 	}
 
 	public Optional<GameObject> nearestTo(GameObject object) {
