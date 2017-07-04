@@ -7,7 +7,6 @@ import com.hatscripts.archergame.objects.Objects;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleLongProperty;
-import javafx.geometry.Dimension2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -24,16 +23,11 @@ class Game extends Canvas {
 		objects.add(ObjectType.PLAYER, getWidth() / 2, getHeight() / 2);
 
 		{
-			Dimension2D blockSize = ObjectType.BLOCK.getSize();
-			double w = blockSize.getWidth(), h = blockSize.getHeight();
-			for (double x = 0; x < width; x += w) {
-				objects.add(ObjectType.BLOCK, x, 0);
-				objects.add(ObjectType.BLOCK, x, height - h);
-			}
-			for (double y = h; y < height - h; y += h) {
-				objects.add(ObjectType.BLOCK, 0, y);
-				objects.add(ObjectType.BLOCK, width - w, y);
-			}
+			double size = 16;
+			objects.add(ObjectType.BLOCK, 0, 0, width, size);
+			objects.add(ObjectType.BLOCK, 0, height - size, width, size);
+			objects.add(ObjectType.BLOCK, 0, 0, size, height);
+			objects.add(ObjectType.BLOCK, width - size, 0, size, height);
 		}
 
 		this.g = this.getGraphicsContext2D();
